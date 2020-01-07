@@ -34,7 +34,7 @@ class Command {
 
     if (!this.composed) {
       // composed commands have already logged the lerna version
-      log.notice("cli", `v${argv.lernaVersion}`);
+      log.notice("cli", `v${argv.lernaVersion} on local audit branch`);
     }
 
     // launch the command

@@ -88,9 +88,32 @@ function npmInstallDependencies(pkg, dependencies, config) {
 
     log.silly("npmInstallDependencies", "writing tempJson", tempJson);
 
+    const npmAudit = () => {
+      const opts = getExecOpts(pkg, config.registry);
+      const cmd = "npm";
+      // const args = ["audit", "--parseable"];
+      // const args = ["audit", "--json"];
+      const args = ["audit", "fix","--parseable"];
+      return ChildProcessUtilities.exec(cmd, args, opts)
+        .then(res => {
+          const auditPath = `${pkg.location}/lerna-audit-successful.txt`;
+          fs.writeFileSync(auditPath, res.stdout);
+          return Promise.resolve();
+        })
+        .catch(err => {
+          const auditPath = `${pkg.location}/lerna-audit-fixes.txt`;
+          const auditPathErr = `${pkg.location}/lerna-audit-err.txt`;
+          fs.writeFileSync(auditPath, err.stdout);
+          fs.writeFileSync(auditPathErr, err.stderr);
+          fs.copyFileSync(pkg.manifestLocation, `${pkg.manifestLocation}.lerna-edited.json`);
+          return Promise.resolve();
+        });
+    };
+
     // Write out our temporary cooked up package.json and then install.
     return writePkg(pkg.manifestLocation, tempJson)
       .then(() => npmInstall(pkg, config))
+      .then(() => npmAudit())
       .then(() => done(), done);
   });
 }
