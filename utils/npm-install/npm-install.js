@@ -1,3 +1,6 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable no-unused-vars */
+
 "use strict";
 
 const fs = require("fs-extra");
@@ -16,7 +19,8 @@ function npmInstall(
   pkg,
   { registry, npmClient, npmClientArgs, npmGlobalStyle, mutex, stdio = "pipe", subCommand = "install" }
 ) {
-  // build command, arguments, and options
+    console.log(`npmInstall hit!`);
+    // build command, arguments, and options
   const opts = getExecOpts(pkg, registry);
   const args = [subCommand];
   let cmd = npmClient || "npm";
@@ -89,15 +93,15 @@ function npmInstallDependencies(pkg, dependencies, config) {
     log.silly("npmInstallDependencies", "writing tempJson", tempJson);
 
     const npmAudit = () => {
+      // console.log(`npmAudit hit!`);
       const opts = getExecOpts(pkg, config.registry);
       const cmd = "npm";
-      // const args = ["audit", "--parseable"];
+      const args = ["audit", "--parseable"]; // --parseable is a lot prettier in my opinion
       // const args = ["audit", "--json"];
-      const args = ["audit", "fix","--parseable"];
+      // const args = ["audit", "fix", "--parseable"]; // use this to fix all found audit issues, may not actually be what you want
       return ChildProcessUtilities.exec(cmd, args, opts)
         .then(res => {
-          const auditPath = `${pkg.location}/lerna-audit-successful.txt`;
-          fs.writeFileSync(auditPath, res.stdout);
+          // console.log(`npmAudit successful for ${pkg.manifestLocation}`);
           return Promise.resolve();
         })
         .catch(err => {
@@ -110,10 +114,46 @@ function npmInstallDependencies(pkg, dependencies, config) {
         });
     };
 
+    const npmOutdated = () => {
+      // console.log(`npmOutdated hit!`);
+      const opts = getExecOpts(pkg, config.registry);
+      const cmd = "npm";
+      const args = ["outdated"]; // no flags (no parseable or json) is a lot prettier in my opinion
+      // const args = ["outdated", "--parseable"]; // --parseable is better for importing into spreadsheets
+      return ChildProcessUtilities.exec(cmd, args, opts)
+        .then(res => {
+          // console.log(`npmOutdated successful for ${pkg.manifestLocation}`);
+          return Promise.resolve();
+        })
+        .catch(err => {
+          const outdatedPath = `${pkg.location}/lerna-outdated-fixes.txt`;
+          fs.writeFileSync(outdatedPath, err.stdout);
+          fs.copyFileSync(pkg.manifestLocation, `${pkg.manifestLocation}.lerna-edited.json`);
+          return Promise.resolve();
+        });
+    };
+
+    const npmUpdate = () => {
+      // console.log(`npmUpdate hit!`);
+      const cmd = "npm";
+      const args = ["update"];
+      return ChildProcessUtilities.exec(cmd, args)
+        .then(res => {
+          log.silly("npmUpdate success", [res]);
+          return Promise.resolve();
+        })
+        .catch(err => {
+          log.silly("npmUpdate err", [err]);
+          return Promise.resolve();
+        });
+    };
+
     // Write out our temporary cooked up package.json and then install.
     return writePkg(pkg.manifestLocation, tempJson)
       .then(() => npmInstall(pkg, config))
       .then(() => npmAudit())
+      .then(() => npmOutdated())
+      // .then(() => npmUpdate())
       .then(() => done(), done);
   });
 }
