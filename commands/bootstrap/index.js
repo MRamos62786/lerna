@@ -39,8 +39,11 @@ class BootstrapCommand extends Command {
   initialize() {
     const { registry, npmClient = "npm", npmClientArgs = [], mutex, hoist, nohoist } = this.options;
 
-    if (this.options.shenanigans) {
-      npmInstall.setShenanigans(true);
+    if (this.options.audit) {
+      npmInstall.setDoAudit(true);
+    }
+    if (this.options.outdated) {
+      npmInstall.setDoOutdated(true);
     }
 
     if (npmClient === "yarn" && hoist) {

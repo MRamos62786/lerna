@@ -77,10 +77,15 @@ exports.builder = yargs => {
         type: "string",
         defaultDescription: ".",
       },
-      shenanigans: {
+      audit: {
         type: "boolean",
         group: "Command Options:",
-        describe: "Use hacky npm audit / npm outdated during bootstrap.",
+        describe: "Use hacky npm audit during bootstrap.",
+      },
+      outdated: {
+        type: "boolean",
+        group: "Command Options:",
+        describe: "Use hacky npm outdated during bootstrap.",
       },
     });
 

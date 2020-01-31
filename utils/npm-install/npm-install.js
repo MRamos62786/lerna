@@ -15,8 +15,10 @@ const getExecOpts = require("@lerna/get-npm-exec-opts");
 module.exports = npmInstall;
 module.exports.dependencies = npmInstallDependencies;
 
-let shenanigans = false;
-module.exports.setShenanigans = (value) => { shenanigans = value; };
+let doAudit = false;
+let doOutdated = false;
+module.exports.setDoAudit = (value) => { doAudit = value; };
+module.exports.setDoOutdated = (value) => { doOutdated = value; };
 
 function npmInstall(
   pkg,
@@ -97,6 +99,9 @@ function npmInstallDependencies(pkg, dependencies, config) {
 
     const npmAudit = () => {
       // console.log(`npmAudit hit!`);
+      if (!doAudit) {
+        return Promise.resolve();
+      }
       const opts = getExecOpts(pkg, config.registry);
       const cmd = "npm";
       const args = ["audit", "--parseable"]; // --parseable is a lot prettier in my opinion
@@ -119,6 +124,9 @@ function npmInstallDependencies(pkg, dependencies, config) {
 
     const npmOutdated = () => {
       // console.log(`npmOutdated hit!`);
+      if (!doOutdated) {
+        return Promise.resolve();
+      }
       const opts = getExecOpts(pkg, config.registry);
       const cmd = "npm";
       const args = ["outdated"]; // no flags (no parseable or json) is a lot prettier in my opinion
@@ -131,7 +139,6 @@ function npmInstallDependencies(pkg, dependencies, config) {
         .catch(err => {
           const outdatedPath = `${pkg.location}/lerna-outdated-fixes.txt`;
           fs.writeFileSync(outdatedPath, err.stdout);
-          fs.copyFileSync(pkg.manifestLocation, `${pkg.manifestLocation}.lerna-edited.json`);
           return Promise.resolve();
         });
     };
@@ -151,20 +158,11 @@ function npmInstallDependencies(pkg, dependencies, config) {
         });
     };
 
-    const doShenanigans = () => {
-      if (shenanigans) {
-        return Promise.resolve()
-          .then(() => npmAudit())
-          .then(() => npmOutdated());
-          // .then(() => npmUpdate())
-      }
-      return Promise.resolve();
-    };
-
     // Write out our temporary cooked up package.json and then install.
     return writePkg(pkg.manifestLocation, tempJson)
       .then(() => npmInstall(pkg, config))
-      .then(() => doShenanigans())
+      .then(() => npmAudit())
+      .then(() => npmOutdated())
       .then(() => done(), done);
   });
 }
