@@ -77,6 +77,11 @@ exports.builder = yargs => {
         type: "string",
         defaultDescription: ".",
       },
+      shenanigans: {
+        type: "boolean",
+        group: "Command Options:",
+        describe: "Use hacky npm audit / npm outdated during bootstrap.",
+      },
     });
 
   return filterable(yargs);

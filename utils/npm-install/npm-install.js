@@ -15,12 +15,15 @@ const getExecOpts = require("@lerna/get-npm-exec-opts");
 module.exports = npmInstall;
 module.exports.dependencies = npmInstallDependencies;
 
+let shenanigans = false;
+module.exports.setShenanigans = (value) => { shenanigans = value; };
+
 function npmInstall(
   pkg,
   { registry, npmClient, npmClientArgs, npmGlobalStyle, mutex, stdio = "pipe", subCommand = "install" }
 ) {
-    console.log(`npmInstall hit!`);
-    // build command, arguments, and options
+  // console.log(`npmInstall hit!`);
+  // build command, arguments, and options
   const opts = getExecOpts(pkg, registry);
   const args = [subCommand];
   let cmd = npmClient || "npm";
@@ -148,12 +151,20 @@ function npmInstallDependencies(pkg, dependencies, config) {
         });
     };
 
+    const doShenanigans = () => {
+      if (shenanigans) {
+        return Promise.resolve()
+          .then(() => npmAudit())
+          .then(() => npmOutdated());
+          // .then(() => npmUpdate())
+      }
+      return Promise.resolve();
+    };
+
     // Write out our temporary cooked up package.json and then install.
     return writePkg(pkg.manifestLocation, tempJson)
       .then(() => npmInstall(pkg, config))
-      .then(() => npmAudit())
-      .then(() => npmOutdated())
-      // .then(() => npmUpdate())
+      .then(() => doShenanigans())
       .then(() => done(), done);
   });
 }

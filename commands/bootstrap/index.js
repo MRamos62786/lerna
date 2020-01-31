@@ -39,6 +39,10 @@ class BootstrapCommand extends Command {
   initialize() {
     const { registry, npmClient = "npm", npmClientArgs = [], mutex, hoist, nohoist } = this.options;
 
+    if (this.options.shenanigans) {
+      npmInstall.setShenanigans(true);
+    }
+
     if (npmClient === "yarn" && hoist) {
       throw new ValidationError(
         "EWORKSPACES",
